@@ -57,13 +57,23 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Use PORT env var if available
     debug = os.environ.get('FLASK_ENV') != 'production'
     
+    # Special handling for Replit environment
+    if os.environ.get('REPL_SLUG'):
+        print(f"🔧 Detected Replit environment: {os.environ.get('REPL_SLUG')}")
+        print(f"🌍 Your API will be available at: https://{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER', 'your-username')}.repl.co")
+    
     print(f"🌐 Starting server on {host}:{port}")
     print(f"🔧 Debug mode: {debug}")
     
-    # Run the Flask application
-    app.run(
-        host=host,
-        port=port,
-        debug=debug,
-        threaded=True  # Enable threading for better performance
-    ) 
+    try:
+        # Run the Flask application
+        app.run(
+            host=host,
+            port=port,
+            debug=debug,
+            threaded=True  # Enable threading for better performance
+        )
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        print("💡 If you're on Replit, make sure the port is configured correctly")
+        print("💡 Try restarting the Repl if issues persist") 

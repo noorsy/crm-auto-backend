@@ -24,7 +24,11 @@ migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
 # Configure CORS for deployment (allow all origins for Replit)
-CORS(app, origins=['*'], allow_headers=['*'], methods=['*'])
+CORS(app, 
+     origins=['*'], 
+     allow_headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Credentials'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)
 
 # Models
 class Customer(db.Model):
@@ -723,6 +727,154 @@ def dashboard_stats():
         'active_loans': active_loans,
         'past_due_loans': past_due_loans,
         'total_portfolio': float(total_portfolio)
+    })
+
+# Health check and status endpoints
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for Replit and monitoring"""
+    try:
+        # Test database connection
+        customer_count = Customer.query.count()
+        
+        return jsonify({
+            'status': 'healthy',
+            'message': 'CRM Auto Backend API is running',
+            'database': 'connected',
+            'customers': customer_count,
+            'timestamp': datetime.utcnow().isoformat(),
+            'environment': 'replit' if os.getenv('REPL_SLUG') else 'local'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'message': f'Database connection failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/api/health', methods=['GET'])
+def api_health():
+    """API health check with more detailed information"""
+    try:
+        # Comprehensive health check
+        customer_count = Customer.query.count()
+        loan_count = Loan.query.count()
+        interaction_count = CustomerInteraction.query.count()
+        
+        # Check if sample data exists
+        has_sample_data = customer_count >= 5
+        
+        return jsonify({
+            'status': 'healthy',
+            'api_version': '1.0.0',
+            'database': {
+                'status': 'connected',
+                'customers': customer_count,
+                'loans': loan_count,
+                'interactions': interaction_count,
+                'has_sample_data': has_sample_data
+            },
+            'endpoints': {
+                'customers': '/api/customers',
+                'loans': '/api/loans',
+                'pre_call': '/api/fetch_user_profile_pre_call/',
+                'post_call': '/api/post_call_outcomes/'
+            },
+            'environment': {
+                'platform': 'replit' if os.getenv('REPL_SLUG') else 'local',
+                'repl_slug': os.getenv('REPL_SLUG'),
+                'repl_owner': os.getenv('REPL_OWNER')
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint with API information"""
+    return jsonify({
+        'message': 'CRM Auto Backend API',
+        'description': 'Customer Relationship Management system for loan collection',
+        'version': '1.0.0',
+        'health_check': '/health',
+        'api_health': '/api/health',
+        'deploy_webhook': '/deploy',
+        'documentation': {
+            'customers': 'GET /api/customers',
+            'loans': 'GET /api/loans',
+            'pre_call_profile': 'GET /api/fetch_user_profile_pre_call/?caller_number=<number>',
+            'post_call_outcomes': 'POST /api/post_call_outcomes/'
+        },
+        'sample_data': 'Database automatically initialized with 5 customers, loans, and interactions',
+        'replit_url': f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER', 'your-username')}.repl.co" if os.getenv('REPL_SLUG') else None
+    })
+
+@app.route('/deploy', methods=['POST'])
+def deploy_webhook():
+    """GitHub webhook for auto-deployment"""
+    import subprocess
+    
+    try:
+        # Get the current working directory
+        current_dir = os.getcwd()
+        
+        # Pull latest code from GitHub
+        result = subprocess.run(
+            ['git', 'pull', 'origin', 'main'], 
+            cwd=current_dir,
+            capture_output=True, 
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            return jsonify({
+                'status': 'success',
+                'message': 'Deployment successful! Replit will restart automatically.',
+                'output': result.stdout,
+                'timestamp': datetime.utcnow().isoformat()
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Git pull failed',
+                'error': result.stderr,
+                'output': result.stdout,
+                'timestamp': datetime.utcnow().isoformat()
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'status': 'error',
+            'message': 'Git pull timed out',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Deployment failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/deploy', methods=['GET'])
+def deploy_info():
+    """Information about the deployment webhook"""
+    return jsonify({
+        'message': 'GitHub Deployment Webhook',
+        'description': 'POST to this endpoint to trigger auto-deployment from GitHub',
+        'usage': {
+            'method': 'POST',
+            'url': '/deploy',
+            'trigger': 'GitHub webhook on push to main branch'
+        },
+        'setup_instructions': 'See REPLIT_SETUP_GUIDE.md for webhook configuration',
+        'manual_alternative': 'Run "git pull origin main" in Replit shell',
+        'status': 'Ready for webhooks'
     })
 
 if __name__ == '__main__':

@@ -167,22 +167,27 @@ def query(query):
                 click.echo("❌ Only SELECT queries are allowed for safety")
                 return
             
-            result = db.session.execute(query)
-            rows = result.fetchall()
-            
-            if not rows:
-                click.echo("🔍 No results found")
-                return
-            
-            # Display results
-            click.echo(f"📊 Found {len(rows)} results:")
-            click.echo("-" * 50)
-            
-            for i, row in enumerate(rows, 1):
-                click.echo(f"{i}: {dict(row)}")
-                if i >= 10:  # Limit output
-                    click.echo(f"... and {len(rows) - 10} more rows")
-                    break
+                         result = db.session.execute(query)
+             rows = result.fetchall()
+             
+             if not rows:
+                 click.echo("🔍 No results found")
+                 return
+             
+             # Display results
+             click.echo(f"📊 Found {len(rows)} results:")
+             click.echo("-" * 50)
+             
+             for i, row in enumerate(rows, 1):
+                 try:
+                     # Handle different SQLAlchemy versions
+                     row_dict = dict(row._mapping) if hasattr(row, '_mapping') else dict(row)
+                     click.echo(f"{i}: {row_dict}")
+                 except:
+                     click.echo(f"{i}: {row}")
+                 if i >= 10:  # Limit output
+                     click.echo(f"... and {len(rows) - 10} more rows")
+                     break
                     
         except Exception as e:
             click.echo(f"❌ Query error: {e}")
