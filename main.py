@@ -15,24 +15,12 @@ def create_tables():
             db.create_all()
             print("✅ Database tables created successfully!")
             
-            # Check if we need to populate with dummy data
+            # Check customer count
             from app import Customer, Loan, CustomerInteraction
-            if Customer.query.count() == 0:
-                print("📝 No customers found, running initialization...")
-                # Import and run the database initialization
-                try:
-                    import subprocess
-                    result = subprocess.run(['python', 'init_comprehensive_db.py'], 
-                                          capture_output=True, text=True, cwd='.')
-                    if result.returncode == 0:
-                        print("✅ Database initialized with dummy data!")
-                    else:
-                        print(f"⚠️ Database initialization warning: {result.stderr}")
-                except Exception as e:
-                    print(f"⚠️ Could not run database initialization: {e}")
-                    print("You can manually run 'python init_comprehensive_db.py' later")
-            else:
-                print(f"📊 Found {Customer.query.count()} customers in database")
+            customer_count = Customer.query.count()
+            print(f"📊 Found {customer_count} customers in database")
+            if customer_count == 0:
+                print("📝 No customers found. You can create customers via the API.")
                 
         except Exception as e:
             print(f"❌ Error creating database tables: {e}")

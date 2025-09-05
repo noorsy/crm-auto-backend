@@ -152,11 +152,8 @@ class CustomerInteraction(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # API Routes
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
 
-@app.route('/api/customers', methods=['GET', 'POST'])
+@app.route('/api/customers', methods=['GET', 'POST'])  # type: ignore
 def customers():
     if request.method == 'GET':
         customers = Customer.query.all()
@@ -181,7 +178,7 @@ def customers():
         if data.get('dob'):
             dob = datetime.strptime(data.get('dob'), '%Y-%m-%d').date()
         
-        customer = Customer(
+        customer = Customer(  # type: ignore
             account_number=data.get('account_number'),
             first_name=data.get('first_name'),
             last_name=data.get('last_name'),
@@ -210,7 +207,7 @@ def customers():
         db.session.commit()
         return jsonify({'message': 'Customer created successfully', 'id': customer.id}), 201
 
-@app.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])  # type: ignore
 def customer_detail(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     
@@ -275,7 +272,7 @@ def customer_detail(customer_id):
         db.session.commit()
         return jsonify({'message': 'Customer deleted successfully'})
 
-@app.route('/api/loans', methods=['GET', 'POST'])
+@app.route('/api/loans', methods=['GET', 'POST'])  # type: ignore
 def loans():
     if request.method == 'GET':
         loans = Loan.query.all()
@@ -308,7 +305,7 @@ def loans():
         next_payment_date = datetime.strptime(data.get('next_payment_date'), '%Y-%m-%d').date() if data.get('next_payment_date') else None
         origination_date = datetime.strptime(data.get('origination_date'), '%Y-%m-%d').date() if data.get('origination_date') else None
         
-        loan = Loan(
+        loan = Loan(  # type: ignore
             customer_id=data.get('customer_id'),
             vehicle_id=data.get('vehicle_id'),
             product_name=data.get('product_name'),
@@ -431,7 +428,7 @@ def fetch_user_profile_pre_call():
         }
     })
 
-@app.route('/api/customers/<int:customer_id>/interactions', methods=['GET', 'POST'])
+@app.route('/api/customers/<int:customer_id>/interactions', methods=['GET', 'POST'])  # type: ignore
 def customer_interactions(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     
@@ -455,7 +452,7 @@ def customer_interactions(customer_id):
         creation_date = datetime.strptime(data.get('creation_date'), '%Y-%m-%d %H:%M:%S.%f%z') if data.get('creation_date') else datetime.utcnow()
         last_updated_date = datetime.strptime(data.get('last_updated_date'), '%Y-%m-%d').date() if data.get('last_updated_date') else datetime.utcnow().date()
         
-        interaction = CustomerInteraction(
+        interaction = CustomerInteraction(  # type: ignore
             customer_id=customer_id,
             creation_date=creation_date,
             last_updated_date=last_updated_date,
