@@ -464,6 +464,81 @@ def customer_interactions(customer_id):
         db.session.commit()
         return jsonify({'message': 'Customer interaction created successfully', 'id': interaction.id}), 201
 
+@app.route('/api/customers/<int:customer_id>/interactions/<int:interaction_id>', methods=['GET', 'PUT', 'DELETE'])
+def manage_customer_interaction(customer_id, interaction_id):
+    """Manage individual customer interactions - get, update, or delete"""
+    customer = Customer.query.get_or_404(customer_id)
+    interaction = CustomerInteraction.query.filter_by(
+        id=interaction_id, 
+        customer_id=customer_id
+    ).first_or_404()
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': interaction.id,
+            'customer_id': interaction.customer_id,
+            'creation_date': interaction.creation_date.isoformat() if interaction.creation_date else None,
+            'last_updated_date': interaction.last_updated_date.isoformat() if interaction.last_updated_date else None,
+            'source': interaction.source,
+            'status': interaction.status,
+            'notes': interaction.notes,
+            'created_at': interaction.created_at.isoformat() if interaction.created_at else None,
+            'updated_at': interaction.updated_at.isoformat() if interaction.updated_at else None
+        })
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        
+        # Update fields if provided
+        if 'source' in data:
+            interaction.source = data['source']
+        if 'status' in data:
+            interaction.status = data['status']
+        if 'notes' in data:
+            interaction.notes = data['notes']
+        
+        # Parse date fields if provided
+        if data.get('creation_date'):
+            try:
+                interaction.creation_date = datetime.strptime(data['creation_date'], '%Y-%m-%d %H:%M:%S.%f%z')
+            except ValueError:
+                try:
+                    interaction.creation_date = datetime.strptime(data['creation_date'], '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    pass
+        
+        if data.get('last_updated_date'):
+            try:
+                interaction.last_updated_date = datetime.strptime(data['last_updated_date'], '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        interaction.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Customer interaction updated successfully',
+            'interaction': {
+                'id': interaction.id,
+                'customer_id': interaction.customer_id,
+                'creation_date': interaction.creation_date.isoformat() if interaction.creation_date else None,
+                'last_updated_date': interaction.last_updated_date.isoformat() if interaction.last_updated_date else None,
+                'source': interaction.source,
+                'status': interaction.status,
+                'notes': interaction.notes,
+                'created_at': interaction.created_at.isoformat() if interaction.created_at else None,
+                'updated_at': interaction.updated_at.isoformat() if interaction.updated_at else None
+            }
+        })
+    
+    elif request.method == 'DELETE':
+        db.session.delete(interaction)
+        db.session.commit()
+        return jsonify({
+            'message': 'Customer interaction deleted successfully',
+            'deleted_interaction_id': interaction_id
+        }), 200
+
 @app.route('/api/post_call_outcomes/', methods=['POST'])
 def post_call_outcomes():
     """
