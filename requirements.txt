@@ -10,4 +10,6 @@ flask-marshmallow==1.2.1
 marshmallow-sqlalchemy==1.1.0
 email-validator==2.2.0
 requests==2.31.0
-gunicorn==21.2.0 
+gunicorn==21.2.0
+click==8.1.7
+psycopg2-binary==2.9.7 
