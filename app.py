@@ -331,8 +331,33 @@ def loans():
         db.session.commit()
         return jsonify({'message': 'Loan created successfully', 'id': loan.id}), 201
 
-@app.route('/api/fetch_user_profile_pre_call/', methods=['GET'])
+@app.route('/api/fetch_user_profile_pre_call/', methods=['GET', 'OPTIONS'])
 def fetch_user_profile_pre_call():
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+    
+    # Ensure this is a GET request and ignore any body data
+    if request.method != 'GET':
+        return jsonify({
+            "success": "False",
+            "caller_details": [],
+            "status": {
+                "type": "error",
+                "message": "Only GET method is allowed for this endpoint"
+            }
+        }), 405
+    
+    # Log request details for debugging (ignore any body content for GET)
+    print(f"GET request to fetch_user_profile_pre_call with args: {request.args.to_dict()}")
+    
+    # IMPORTANT: This endpoint completely ignores any request body data (including '{}')
+    # Flask automatically ignores body for GET requests, ensuring success response
+    # Get caller_number from query parameters only (ignore any body data)
     caller_number = request.args.get('caller_number')
     
     if not caller_number:
@@ -341,7 +366,7 @@ def fetch_user_profile_pre_call():
             "caller_details": [],
             "status": {
                 "type": "error",
-                "message": "caller_number parameter is required"
+                "message": "caller_number parameter is required in query string"
             }
         }), 400
     

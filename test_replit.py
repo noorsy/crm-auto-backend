@@ -59,7 +59,7 @@ def test_replit_deployment():
             'name': 'Pre-Call Profile',
             'url': f'{base_url}/api/fetch_user_profile_pre_call/?caller_number=5551234567',
             'method': 'GET',
-            'expected_keys': ['user_info', 'loan_info']
+            'expected_keys': ['caller_details', 'status', 'success']
         }
     ]
     

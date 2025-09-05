@@ -13,6 +13,11 @@ This document provides comprehensive examples for both GET and POST endpoints in
 http://localhost:5000/api/fetch_user_profile_pre_call/?caller_number={phone_number}
 ```
 
+### **Important Notes**:
+- This is a GET request that accepts parameters only via query string
+- Any request body or empty headers (like `--header '{}'` or `--data '{}'`) are safely ignored
+- The endpoint handles CORS preflight requests automatically
+
 ### **Example Curl Commands**:
 
 #### 1. **John Doe** (Current Customer - Auto Loan)
