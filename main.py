@@ -42,7 +42,7 @@ if __name__ == '__main__':
     
     # Configure for Replit deployment
     host = '0.0.0.0'  # Allow external connections
-    port = int(os.environ.get('PORT', 5000))  # Use PORT env var if available
+    port = 5000  # Default to port 5000
     debug = os.environ.get('FLASK_ENV') != 'production'
     
     # Special handling for Replit environment

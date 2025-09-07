@@ -11,6 +11,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Add request logging
+@app.before_request
+def log_request_info():
+    print(f"🌐 {request.method} {request.url}")
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        print(f"📦 Content-Type: {request.content_type}")
+        if request.is_json:
+            print(f"📋 JSON Data: {request.get_json()}")
+
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///crm.db')
@@ -23,43 +32,39 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
-# Configure CORS for deployment (allow all origins for Replit)
-CORS(app, 
-     origins=['*'], 
-     allow_headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Credentials'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     supports_credentials=True)
+# Configure CORS - Simple setup that allows everything
+CORS(app)
 
 # Models
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    account_number = db.Column(db.String(50), unique=True, nullable=False)
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
-    email_address = db.Column(db.String(120), nullable=False)
-    primary_phone_number = db.Column(db.BigInteger, nullable=False)
-    ssn = db.Column(db.Integer, nullable=False)
-    dob = db.Column(db.Date, nullable=False)
-    address_line_1 = db.Column(db.Text, nullable=False)
+    account_number = db.Column(db.String(50), unique=True, nullable=True)
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
+    email_address = db.Column(db.String(120), nullable=True)
+    primary_phone_number = db.Column(db.BigInteger, nullable=True)
+    ssn = db.Column(db.Integer, nullable=True)
+    dob = db.Column(db.Date, nullable=True)
+    address_line_1 = db.Column(db.Text, nullable=True)
     address_line_2 = db.Column(db.Text, nullable=True)
-    city = db.Column(db.String(100), nullable=False)
-    state = db.Column(db.String(50), nullable=False)
-    zip_code = db.Column(db.Integer, nullable=False)
-    customer_number = db.Column(db.Integer, nullable=False)
-    record_type = db.Column(db.String(50), nullable=False)
+    city = db.Column(db.String(100), nullable=True)
+    state = db.Column(db.String(50), nullable=True)
+    zip_code = db.Column(db.Integer, nullable=True)
+    customer_number = db.Column(db.Integer, nullable=True)
+    record_type = db.Column(db.String(50), nullable=True)
     borrower_first_name = db.Column(db.String(100), nullable=True)
     borrower_last_name = db.Column(db.String(100), nullable=True)
-    is_eligible_to_call = db.Column(db.Boolean, default=True)
+    is_eligible_to_call = db.Column(db.Boolean, default=True, nullable=True)
     transfer_phone_number = db.Column(db.BigInteger, nullable=True)
-    transfer_ip_address = db.Column(db.String(50), nullable=True)
+    transfer_ip_address = db.Column(db.String(45), nullable=True)
     
     # Legacy fields for backward compatibility
     credit_score = db.Column(db.Integer, nullable=True)
     monthly_income = db.Column(db.Float, nullable=True)
     employment_status = db.Column(db.String(50), nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
     
     # Relationships
     loans = db.relationship('Loan', backref='customer', lazy=True)
@@ -259,13 +264,54 @@ def customer_detail(customer_id):
         })
     
     elif request.method == 'PUT':
+        print(f"🔄 PUT request received for customer ID: {customer_id}")
+        print(f"📥 Request headers: {dict(request.headers)}")
+        
         data = request.get_json()
+        print(f"📋 Request data: {data}")
+        print(f"👤 Current customer data: {customer.__dict__}")
+        
+        if not data:
+            print("❌ No JSON data received")
+            return jsonify({'error': 'No data provided'}), 400
+            
+        # Clean up data - convert empty strings to None for date and numeric fields
+        if 'dob' in data and data['dob'] == '':
+            data['dob'] = None
+        if 'ssn' in data and data['ssn'] == '':
+            data['ssn'] = None
+        if 'zip_code' in data and data['zip_code'] == '':
+            data['zip_code'] = None
+        if 'customer_number' in data and data['customer_number'] == '':
+            data['customer_number'] = None
+        if 'transfer_phone_number' in data and data['transfer_phone_number'] == '':
+            data['transfer_phone_number'] = None
+        if 'credit_score' in data and data['credit_score'] == '':
+            data['credit_score'] = None
+        if 'monthly_income' in data and data['monthly_income'] == '':
+            data['monthly_income'] = None
+            
+        updated_fields = []
         for key, value in data.items():
             if hasattr(customer, key):
+                old_value = getattr(customer, key)
                 setattr(customer, key, value)
+                updated_fields.append(f"{key}: {old_value} -> {value}")
+                print(f"✏️ Updated {key}: {old_value} -> {value}")
+            else:
+                print(f"⚠️ Field '{key}' not found on customer model")
+                
         customer.updated_at = datetime.utcnow()
-        db.session.commit()
-        return jsonify({'message': 'Customer updated successfully'})
+        print(f"📝 Updated fields: {updated_fields}")
+        
+        try:
+            db.session.commit()
+            print(f"✅ Customer {customer_id} updated successfully")
+            return jsonify({'message': 'Customer updated successfully'})
+        except Exception as e:
+            print(f"❌ Database commit failed: {str(e)}")
+            db.session.rollback()
+            return jsonify({'error': 'Failed to update customer'}), 500
     
     elif request.method == 'DELETE':
         db.session.delete(customer)
@@ -330,6 +376,70 @@ def loans():
         db.session.add(loan)
         db.session.commit()
         return jsonify({'message': 'Loan created successfully', 'id': loan.id}), 201
+
+@app.route('/api/loans/<int:loan_id>', methods=['GET', 'PUT', 'DELETE'])  # type: ignore
+def loan_detail(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': loan.id,
+            'customer_id': loan.customer_id,
+            'customer': f"{loan.customer.first_name} {loan.customer.last_name}",
+            'vehicle_id': loan.vehicle_id,
+            'vehicle': f"{loan.vehicle.year} {loan.vehicle.make} {loan.vehicle.model}" if loan.vehicle else None,
+            'product_name': loan.product_name,
+            'due_amount': loan.due_amount,
+            'no_of_missed_installments': loan.no_of_missed_installments,
+            'contractual_installment_amount': loan.contractual_installment_amount,
+            'interest_late_fee': loan.interest_late_fee,
+            'minimum_amount': loan.minimum_amount,
+            'acceptable_pay_later_date': loan.acceptable_pay_later_date.isoformat() if loan.acceptable_pay_later_date else None,
+            'acceptable_already_paid_date': loan.acceptable_already_paid_date.isoformat() if loan.acceptable_already_paid_date else None,
+            'grace_period_date': loan.grace_period_date.isoformat() if loan.grace_period_date else None,
+            'due_date': loan.due_date.isoformat() if loan.due_date else None,
+            'loan_amount': loan.loan_amount,
+            'interest_rate': loan.interest_rate,
+            'term_months': loan.term_months,
+            'monthly_payment': loan.monthly_payment,
+            'balance_remaining': loan.balance_remaining,
+            'status': loan.status,
+            'next_payment_date': loan.next_payment_date.isoformat() if loan.next_payment_date else None,
+            'origination_date': loan.origination_date.isoformat() if loan.origination_date else None,
+            'days_past_due': loan.days_past_due,
+            'created_at': loan.created_at.isoformat() if loan.created_at else None
+        })
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        
+        # Parse date fields
+        if data.get('due_date'):
+            loan.due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
+        if data.get('acceptable_pay_later_date'):
+            loan.acceptable_pay_later_date = datetime.strptime(data.get('acceptable_pay_later_date'), '%Y-%m-%d').date()
+        if data.get('acceptable_already_paid_date'):
+            loan.acceptable_already_paid_date = datetime.strptime(data.get('acceptable_already_paid_date'), '%Y-%m-%d').date()
+        if data.get('grace_period_date'):
+            loan.grace_period_date = datetime.strptime(data.get('grace_period_date'), '%Y-%m-%d').date()
+        if data.get('next_payment_date'):
+            loan.next_payment_date = datetime.strptime(data.get('next_payment_date'), '%Y-%m-%d').date()
+        if data.get('origination_date'):
+            loan.origination_date = datetime.strptime(data.get('origination_date'), '%Y-%m-%d').date()
+        
+        # Update other fields
+        for key, value in data.items():
+            if hasattr(loan, key) and key not in ['due_date', 'acceptable_pay_later_date', 'acceptable_already_paid_date', 'grace_period_date', 'next_payment_date', 'origination_date']:
+                setattr(loan, key, value)
+        
+        loan.updated_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'message': 'Loan updated successfully'})
+    
+    elif request.method == 'DELETE':
+        db.session.delete(loan)
+        db.session.commit()
+        return jsonify({'message': 'Loan deleted successfully'})
 
 @app.route('/api/fetch_user_profile_pre_call/', methods=['GET', 'OPTIONS'])
 def fetch_user_profile_pre_call():
@@ -977,4 +1087,4 @@ def deploy_info():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=5001) 

@@ -22,7 +22,7 @@ http://localhost:5000/api/fetch_user_profile_pre_call/?caller_number={phone_numb
 
 #### 1. **John Doe** (Current Customer - Auto Loan)
 ```bash
-curl "http://localhost:5000/api/fetch_user_profile_pre_call/?caller_number=5551234567"
+curl "http://localhost:5000/api/fetch_user_profile_pre_call/?caller_number=6464887128"
 ```
 
 #### 2. **Sarah Johnson** (Past Due - Payment Arrangement)

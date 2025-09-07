@@ -57,7 +57,7 @@ def test_replit_deployment():
         },
         {
             'name': 'Pre-Call Profile',
-            'url': f'{base_url}/api/fetch_user_profile_pre_call/?caller_number=5551234567',
+            'url': f'{base_url}/api/fetch_user_profile_pre_call/?caller_number=6464887128',
             'method': 'GET',
             'expected_keys': ['caller_details', 'status', 'success']
         }
@@ -122,7 +122,7 @@ def test_replit_deployment():
         print("📋 Quick API Examples:")
         print(f"   curl {base_url}/health")
         print(f"   curl {base_url}/api/customers")
-        print(f"   curl \"{base_url}/api/fetch_user_profile_pre_call/?caller_number=5551234567\"")
+        print(f"   curl \"{base_url}/api/fetch_user_profile_pre_call/?caller_number=6464887128\"")
     else:
         print()
         print("⚠️ Some tests failed. Check the server logs for more details.")
