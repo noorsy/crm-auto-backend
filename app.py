@@ -441,33 +441,32 @@ def loan_detail(loan_id):
         db.session.commit()
         return jsonify({'message': 'Loan deleted successfully'})
 
-@app.route('/api/fetch_user_profile_pre_call/', methods=['GET', 'OPTIONS'])
+@app.route('/api/fetch_user_profile_pre_call/', methods=['GET', 'POST', 'OPTIONS'])
 def fetch_user_profile_pre_call():
     # Handle CORS preflight requests
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response
     
-    # Ensure this is a GET request and ignore any body data
-    if request.method != 'GET':
+    # Accept both GET and POST methods (ignore any body data for both)
+    if request.method not in ['GET', 'POST']:
         return jsonify({
             "success": "False",
             "caller_details": [],
             "status": {
                 "type": "error",
-                "message": "Only GET method is allowed for this endpoint"
+                "message": "Only GET and POST methods are allowed for this endpoint"
             }
         }), 405
     
-    # Log request details for debugging (ignore any body content for GET)
-    print(f"GET request to fetch_user_profile_pre_call with args: {request.args.to_dict()}")
+    # Log request details for debugging (ignore any body content for GET and POST)
+    print(f"{request.method} request to fetch_user_profile_pre_call with args: {request.args.to_dict()}")
     
-    # IMPORTANT: This endpoint completely ignores any request body data (including '{}')
-    # Flask automatically ignores body for GET requests, ensuring success response
-    # Get caller_number from query parameters only (ignore any body data)
+    # IMPORTANT: This endpoint completely ignores any request body data (including '{}') for both GET and POST
+    # Always get caller_number from query parameters only (ignore any body data)
     caller_number = request.args.get('caller_number')
     
     if not caller_number:
